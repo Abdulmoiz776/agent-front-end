@@ -1,0 +1,648 @@
+================================================================================
+BOOKING API REFERENCE - Backend Model & Serializer Documentation
+================================================================================
+Generated: November 5, 2025
+Project: Saer.pk Backend (Django 4.2.1)
+================================================================================
+
+TABLE OF CONTENTS
+1. Booking Model Fields
+2. BookingSerializer Configuration
+3. Required vs Optional Fields
+4. Minimum Valid Payload
+5. Complete Payload Example
+6. Nested Object Structures
+
+================================================================================
+1. BOOKING MODEL FIELDS (booking/models.py)
+================================================================================
+
+REQUIRED FIELDS:
+----------------
+user                    ForeignKey(User)            Auto-set from JWT token
+organization            ForeignKey(Organization)    Required - ID of organization
+branch                  ForeignKey(Branch)          Required - ID of branch
+agency                  ForeignKey(Agency)          Required - ID of agency
+booking_number          CharField(max_length=20)    Auto-generated (BK-YYYYMMDD-XXXXXX)
+status                  CharField(max_length=20)    Default: "Pending"
+
+PASSENGER COUNTS:
+-----------------
+total_pax               IntegerField                Total passengers (default: 0)
+total_adult             IntegerField                Adult count (default: 0)
+total_child             IntegerField                Child count (default: 0)
+total_infant            IntegerField                Infant count (default: 0)
+
+OPTIONAL PACKAGE:
+-----------------
+umrah_package           ForeignKey(UmrahPackage)    null=True, blank=True
+
+OPTIONAL RELATIONSHIPS:
+-----------------------
+internals               ManyToManyField(InternalNote)   blank=True, null=True
+confirmed_by            ForeignKey(User)                null=True, blank=True
+linked_booking          ForeignKey('self')              null=True, blank=True
+
+FINANCIAL FIELDS:
+-----------------
+total_amount            FloatField                  Default: 0
+total_ticket_amount     FloatField                  Default: 0
+total_hotel_amount      FloatField                  Default: 0
+total_transport_amount  FloatField                  Default: 0
+total_visa_amount       FloatField                  Default: 0
+paid_payment            FloatField                  Default: 0 (null=True)
+pending_payment         FloatField                  Default: 0 (null=True)
+
+CURRENCY FIELDS (PKR/SAR):
+--------------------------
+total_hotel_amount_pkr      FloatField              Default: 0 (null=True)
+total_hotel_amount_sar      FloatField              Default: 0 (null=True)
+total_transport_amount_pkr  FloatField              Default: 0 (null=True)
+total_transport_amount_sar  FloatField              Default: 0 (null=True)
+total_ticket_amount_pkr     FloatField              Default: 0 (null=True)
+total_ziyarat_amount_pkr    FloatField              Default: 0 (null=True)
+total_ziyarat_amount_sar    FloatField              Default: 0 (null=True)
+total_food_amount_pkr       FloatField              Default: 0 (null=True)
+total_food_amount_sar       FloatField              Default: 0 (null=True)
+total_in_pkr                FloatField              Default: 0 (null=True)
+
+BOOKING TYPE & FLAGS:
+---------------------
+booking_type            CharField(max_length=20)    Choices: TICKET, UMRAH, HOTEL, OTHER
+is_full_package         BooleanField                Default: False
+is_walkin               BooleanField                Default: False
+is_paid                 BooleanField                Default: False
+payment_status          CharField(max_length=20)    Default: "Pending"
+is_partial_payment_allowed  BooleanField            Default: False
+call_status             BooleanField                Default: False
+is_ziyarat_included     BooleanField                Default: False
+is_food_included        BooleanField                Default: False
+
+VISA PRICING:
+-------------
+is_visa_price_pkr       BooleanField                Default: True (True=PKR, False=SAR)
+visa_riyal_rate         FloatField                  Default: 0 (null=True)
+visa_rate               FloatField                  Default: 0 (null=True)
+visa_rate_in_sar        FloatField                  Default: 0 (null=True)
+visa_rate_in_pkr        FloatField                  Default: 0 (null=True)
+
+TIMESTAMPS & NOTES:
+-------------------
+date                    DateTimeField               auto_now_add=True
+created_at              DateTimeField               auto_now_add=True (null=True)
+expiry_time             DateTimeField               null=True, blank=True
+rejected_at             DateTimeField               null=True, blank=True
+client_note             TextField                   blank=True, null=True
+rejected_notes          TextField                   blank=True, null=True
+
+JSON FIELDS:
+------------
+payments                JSONField                   default=list, blank=True
+journal_items           JSONField                   default=list, blank=True
+
+ORGANIZATION IDs:
+-----------------
+selling_organization_id         IntegerField        null=True, blank=True
+owner_organization_id           IntegerField        null=True, blank=True
+inventory_owner_organization_id IntegerField        null=True, blank=True
+booking_organization_id         IntegerField        null=True, blank=True
+
+COMMISSION & MARKUP:
+--------------------
+reseller_commission     FloatField                  Default: 0 (null=True)
+markup_by_reseller      FloatField                  Default: 0 (null=True)
+
+================================================================================
+2. BOOKINGSERIALIZER CONFIGURATION (booking/serializers.py)
+================================================================================
+
+WRITE-ONLY FIELDS (for POST/PUT):
+----------------------------------
+user_id                 IntegerField                write_only=True, required=False
+                                                    (Auto-set from JWT, optional to send)
+
+agency_id               PrimaryKeyRelatedField      source="agency", REQUIRED
+                                                    queryset=Agency.objects.all()
+
+internal_notes_id       PrimaryKeyRelatedField      source="internal", OPTIONAL
+                                                    required=False, allow_null=True
+                                                    queryset=InternalNote.objects.all()
+
+linked_booking_id       PrimaryKeyRelatedField      source="linked_booking", OPTIONAL
+                                                    required=False, allow_null=True
+                                                    queryset=Booking.objects.all()
+
+READ-ONLY NESTED OBJECTS (for GET):
+------------------------------------
+umrah_package           UmrahPackageSerializer      read_only=True
+agency                  AgencySerializer            read_only=True
+user                    UserSerializer              read_only=True
+organization            OrganizationSerializer      read_only=True
+branch                  BranchSerializer            read_only=True
+confirmed_by            UserSerializer              read_only=True
+
+READ-ONLY COMPUTED FIELDS:
+---------------------------
+remaining_amount        FloatField                  read_only=True
+booking_number          CharField                   read_only=True
+
+OPTIONAL NESTED ARRAYS:
+-----------------------
+hotel_details           BookingHotelDetailsSerializer(many=True)      required=False
+transport_details       BookingTransportDetailsSerializer(many=True)  required=False
+ticket_details          BookingTicketDetailsSerializer(many=True)     required=False
+person_details          BookingPersonDetailSerializer(many=True)      required=False
+payment_details         PaymentSerializer(many=True)                  required=False
+ziyarat_details         BookingPersonZiyaratDetailsSerializer(many=True) required=False
+food_details            BookingPersonFoodDetailsSerializer(many=True)    required=False
+
+JSON FIELDS:
+------------
+payments                ListField(child=DictField())    required=False
+journal_items           ListField(child=DictField())    required=False
+
+================================================================================
+3. REQUIRED VS OPTIONAL FIELDS
+================================================================================
+
+MINIMUM REQUIRED FOR POST /api/bookings/:
+------------------------------------------
+✓ organization          (Integer - Organization ID)
+✓ branch                (Integer - Branch ID)
+✓ agency_id             (Integer - Agency ID)
+✓ total_pax             (Integer - Total passengers)
+✓ total_adult           (Integer - Adult count)
+✓ total_child           (Integer - Child count)
+✓ total_infant          (Integer - Infant count)
+✓ status                (String - e.g., "Pending")
+
+OPTIONAL BUT RECOMMENDED:
+-------------------------
+○ umrah_package         (Integer - Package ID)
+○ person_details        (Array - Passenger information)
+○ hotel_details         (Array - Hotel bookings)
+○ transport_details     (Array - Transport bookings)
+○ ticket_details        (Array - Flight tickets)
+○ payment_details       (Array - Payment records)
+
+AUTOMATICALLY SET BY BACKEND:
+------------------------------
+✓ user                  (From JWT token)
+✓ booking_number        (Auto-generated: BK-YYYYMMDD-XXXXXX)
+✓ date                  (Current timestamp)
+✓ created_at            (Current timestamp)
+
+================================================================================
+4. MINIMUM VALID PAYLOAD
+================================================================================
+
+POST /api/bookings/
+Authorization: Bearer <JWT_TOKEN>
+Content-Type: application/json
+
+{
+  "organization": 13,
+  "branch": 23,
+  "agency_id": 29,
+  "umrah_package": 10,
+  "total_pax": 1,
+  "total_adult": 1,
+  "total_child": 0,
+  "total_infant": 0,
+  "status": "Pending",
+  "person_details": [
+    {
+      "first_name": "Ahmed",
+      "last_name": "Khan",
+      "passport_number": "AB1234567",
+      "date_of_birth": "1990-01-15",
+      "age_group": "adult",
+      "contact_number": "03001234567",
+      "is_family_head": true
+    }
+  ]
+}
+
+================================================================================
+5. COMPLETE PAYLOAD EXAMPLE
+================================================================================
+
+POST /api/bookings/
+Authorization: Bearer <JWT_TOKEN>
+Content-Type: application/json
+
+{
+  "organization": 13,
+  "branch": 23,
+  "agency_id": 29,
+  "umrah_package": 10,
+  "internal_notes_id": 26,
+  "total_pax": 2,
+  "total_adult": 2,
+  "total_child": 0,
+  "total_infant": 0,
+  "status": "Pending",
+  "payment_status": "Pending",
+  "is_full_package": true,
+  "booking_type": "UMRAH",
+  "is_partial_payment_allowed": true,
+  "client_note": "Customer prefers ground floor rooms",
+  
+  "person_details": [
+    {
+      "first_name": "Ahmed",
+      "last_name": "Khan",
+      "passport_number": "AB1234567",
+      "date_of_birth": "1990-01-15",
+      "age_group": "adult",
+      "gender": "Male",
+      "nationality": "Pakistani",
+      "contact_number": "03001234567",
+      "email": "ahmed@example.com",
+      "is_family_head": true,
+      "is_visa_included": true,
+      "ticket_included": true
+    },
+    {
+      "first_name": "Fatima",
+      "last_name": "Khan",
+      "passport_number": "AB7654321",
+      "date_of_birth": "1992-03-20",
+      "age_group": "adult",
+      "gender": "Female",
+      "nationality": "Pakistani",
+      "contact_number": "03009876543",
+      "email": "fatima@example.com",
+      "is_family_head": false,
+      "is_visa_included": true,
+      "ticket_included": true
+    }
+  ],
+  
+  "hotel_details": [
+    {
+      "hotel_id": 16,
+      "room_type": "double",
+      "check_in_date": "2025-12-01",
+      "check_out_date": "2025-12-10",
+      "price": 5000,
+      "quantity": 1,
+      "city": "Makkah"
+    }
+  ],
+  
+  "transport_details": [
+    {
+      "vehicle_type": 8,
+      "departure_date": "2025-12-01",
+      "pickup_location": "Jeddah Airport",
+      "dropoff_location": "Makkah Hotel",
+      "price": 2000,
+      "is_price_pkr": true,
+      "sector_details": [
+        {
+          "sector_id": 7,
+          "sector_name": "Jeddah to Makkah"
+        }
+      ]
+    }
+  ],
+  
+  "ticket_details": [
+    {
+      "ticket_id": 8,
+      "airline": "Saudi Airlines",
+      "flight_number": "SV123",
+      "price": 45000,
+      "trip_details": [
+        {
+          "departure_city": "Karachi",
+          "arrival_city": "Jeddah",
+          "departure_date_time": "2025-12-01T02:00:00Z",
+          "arrival_date_time": "2025-12-01T07:00:00Z",
+          "trip_type": "outbound"
+        }
+      ]
+    }
+  ],
+  
+  "payment_details": [
+    {
+      "amount": 10000,
+      "method": "Bank Transfer",
+      "date": "2025-11-05",
+      "status": "completed",
+      "reference_number": "PAY-001"
+    }
+  ]
+}
+
+================================================================================
+6. NESTED OBJECT STRUCTURES
+================================================================================
+
+PERSON_DETAILS (BookingPersonDetail):
+--------------------------------------
+{
+  "first_name": "string (required)",
+  "last_name": "string (required)",
+  "passport_number": "string (required)",
+  "date_of_birth": "YYYY-MM-DD (required)",
+  "age_group": "adult|child|infant (required)",
+  "gender": "Male|Female (optional)",
+  "nationality": "string (optional)",
+  "contact_number": "string (optional)",
+  "email": "string (optional)",
+  "is_family_head": "boolean (default: false)",
+  "is_visa_included": "boolean (default: false)",
+  "ticket_included": "boolean (default: false)"
+}
+
+HOTEL_DETAILS (BookingHotelDetails):
+-------------------------------------
+{
+  "hotel_id": "integer (required)",
+  "room_type": "string (e.g., double, triple)",
+  "check_in_date": "YYYY-MM-DD (required)",
+  "check_out_date": "YYYY-MM-DD (required)",
+  "price": "float (required)",
+  "quantity": "integer (default: 1)",
+  "city": "string (optional)"
+}
+
+TRANSPORT_DETAILS (BookingTransportDetails):
+---------------------------------------------
+{
+  "vehicle_type": "integer (VehicleType ID)",
+  "departure_date": "YYYY-MM-DD",
+  "pickup_location": "string",
+  "dropoff_location": "string",
+  "price": "float",
+  "is_price_pkr": "boolean (default: true)",
+  "sector_details": [
+    {
+      "sector_id": "integer",
+      "sector_name": "string"
+    }
+  ]
+}
+
+TICKET_DETAILS (BookingTicketDetails):
+---------------------------------------
+{
+  "ticket_id": "integer",
+  "airline": "string",
+  "flight_number": "string",
+  "price": "float",
+  "trip_details": [
+    {
+      "departure_city": "string",
+      "arrival_city": "string",
+      "departure_date_time": "ISO 8601 timestamp",
+      "arrival_date_time": "ISO 8601 timestamp",
+      "trip_type": "outbound|return|oneway"
+    }
+  ],
+  "stopover_details": [
+    {
+      "stopover_city": "string",
+      "stopover_duration": "string (e.g., '2h 30m')",
+      "trip_type": "outbound|return"
+    }
+  ]
+}
+
+PAYMENT_DETAILS (Payment):
+---------------------------
+{
+  "amount": "float (required)",
+  "method": "string (e.g., Cash, Bank Transfer)",
+  "date": "YYYY-MM-DD",
+  "status": "pending|completed|failed",
+  "reference_number": "string (optional)"
+}
+
+================================================================================
+7. AUTHENTICATION & AUTHORIZATION
+================================================================================
+
+AUTHENTICATION:
+---------------
+Type: JWT (JSON Web Token)
+Header: Authorization: Bearer <access_token>
+
+TOKEN ACQUISITION:
+------------------
+POST /api/token/
+{
+  "username": "agent1@panel.com",
+  "password": "your_password"
+}
+
+Response:
+{
+  "access": "eyJhbGciOiJIUzI1NiIsInR...",
+  "refresh": "eyJhbGciOiJIUzI1NiIsInR..."
+}
+
+TOKEN USAGE:
+------------
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR...
+
+AUTO-EXTRACTED FROM JWT:
+------------------------
+- request.user → UserProfile → User (automatic backend conversion)
+- user_id field not required in payload (optional for backward compatibility)
+
+================================================================================
+8. API ENDPOINTS
+================================================================================
+
+LIST BOOKINGS:
+--------------
+GET /api/bookings/
+Authorization: Bearer <token>
+
+Response: Array of booking objects with nested relations
+
+CREATE BOOKING:
+---------------
+POST /api/bookings/
+Authorization: Bearer <token>
+Content-Type: application/json
+Body: See Section 4 or 5
+
+Response: Created booking object (201 Created)
+
+RETRIEVE BOOKING:
+-----------------
+GET /api/bookings/{id}/
+Authorization: Bearer <token>
+
+Response: Single booking object with all nested details
+
+UPDATE BOOKING:
+---------------
+PUT /api/bookings/{id}/
+PATCH /api/bookings/{id}/
+Authorization: Bearer <token>
+Content-Type: application/json
+Body: Partial or full booking object
+
+Response: Updated booking object (200 OK)
+
+DELETE BOOKING:
+---------------
+DELETE /api/bookings/{id}/
+Authorization: Bearer <token>
+
+Response: 204 No Content
+
+================================================================================
+9. ERROR RESPONSES
+================================================================================
+
+400 BAD REQUEST:
+----------------
+{
+  "field_name": ["Error message"],
+  "organization": ["This field is required."]
+}
+
+401 UNAUTHORIZED:
+-----------------
+{
+  "detail": "Authentication credentials were not provided."
+}
+
+403 FORBIDDEN:
+--------------
+{
+  "detail": "You do not have permission to perform this action."
+}
+
+404 NOT FOUND:
+--------------
+{
+  "detail": "Not found."
+}
+
+500 INTERNAL SERVER ERROR:
+--------------------------
+{
+  "detail": "Internal server error. Please contact support."
+}
+
+================================================================================
+10. BACKEND IMPLEMENTATION DETAILS
+================================================================================
+
+VIEW IMPLEMENTATION (booking/views.py):
+----------------------------------------
+class BookingViewSet(viewsets.ModelViewSet):
+    def create(self, request, *args, **kwargs):
+        normalized = self._normalize_data(request)
+        normalized.pop('user_id', None)  # Remove user_id - use JWT
+        serializer = self.get_serializer(data=normalized)
+        serializer.is_valid(raise_exception=True)
+        
+        # Get actual User from request.user (might be UserProfile)
+        user = request.user
+        if hasattr(user, 'user'):
+            user = user.user
+        
+        serializer.save(user=user)
+        return Response(serializer.data, status=201)
+
+SERIALIZER CREATE METHOD:
+--------------------------
+@transaction.atomic
+def create(self, validated_data):
+    validated_data.pop("booking_number", None)
+    
+    # Extract user_id (optional, fallback)
+    user_id = validated_data.pop("user_id", None)
+    user = validated_data.pop("user", None)  # From view
+    
+    if not user and user_id:
+        user = User.objects.get(id=user_id)
+    
+    # Extract nested data
+    hotel_data = validated_data.pop("hotel_details", [])
+    transport_data = validated_data.pop("transport_details", [])
+    ticket_data = validated_data.pop("ticket_details", [])
+    person_data = validated_data.pop("person_details", [])
+    payment_data = validated_data.pop("payment_details", [])
+    
+    # Generate booking number
+    booking_number = f"BK-{now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+    
+    # Create booking
+    booking = Booking.objects.create(
+        booking_number=booking_number,
+        user=user,
+        **validated_data
+    )
+    
+    # Create nested objects...
+    return booking
+
+================================================================================
+11. FRONTEND INTEGRATION TIPS
+================================================================================
+
+AXIOS CONFIGURATION:
+--------------------
+const api = axios.create({
+  baseURL: 'https://saer.pk/',
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+// Add token interceptor
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('agentAccessToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+CREATING A BOOKING:
+-------------------
+const createBooking = async (bookingData) => {
+  try {
+    const response = await api.post('/api/bookings/', bookingData);
+    console.log('Booking created:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Booking error:', error.response?.data);
+    throw error;
+  }
+};
+
+PAYLOAD PREPARATION:
+--------------------
+const payload = {
+  organization: agentOrg.organization_id,
+  branch: agentOrg.branch_id,
+  agency_id: agentOrg.agency_id,
+  umrah_package: selectedPackage.id,
+  total_pax: personsData.length,
+  total_adult: personsData.filter(p => p.age_group === 'adult').length,
+  total_child: personsData.filter(p => p.age_group === 'child').length,
+  total_infant: personsData.filter(p => p.age_group === 'infant').length,
+  status: 'Pending',
+  person_details: personsData
+};
+
+================================================================================
+END OF DOCUMENTATION
+================================================================================
+Last Updated: November 5, 2025
+Django Version: 4.2.1
+DRF Version: 3.14.0
+Project: Saer.pk Backend
+Repository: https://github.com/Ahsaanraza/Saer.pk-backend
+================================================================================
