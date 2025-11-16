@@ -140,13 +140,13 @@ const AgentPackages = () => {
       try {
         setLoading(true);
         const [packageRes, airlinesRes] = await Promise.all([
-          axios.get(`https://saer.pk/api/umrah-packages/?organization=${orgId}`, {
+          axios.get(`http://127.0.0.1:8000/api/umrah-packages/?organization=${orgId}`, {
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
           }),
-          axios.get("https://saer.pk/api/airlines/", {
+          axios.get("http://127.0.0.1:8000/api/airlines/", {
             params: { organization: orgId },
             headers: {
               Authorization: `Bearer ${token}`,

@@ -648,9 +648,9 @@ const TicketBooking = () => {
         // No valid cache, fetch fresh data
         const [ticketsResponse, airlinesResponse, citiesResponse] =
           await Promise.all([
-            api.get(`https://saer.pk/api/tickets/?organization=${orgId}`),
-            api.get(`https://saer.pk/api/airlines/?organization=${orgId}`),
-            api.get(`https://saer.pk/api/cities/?organization=${orgId}`),
+            api.get(`http://127.0.0.1:8000/api/tickets/?organization=${orgId}`),
+            api.get(`http://127.0.0.1:8000/api/airlines/?organization=${orgId}`),
+            api.get(`http://127.0.0.1:8000/api/cities/?organization=${orgId}`),
           ]);
 
         const ticketsData = ticketsResponse.data;
@@ -1176,7 +1176,7 @@ const TicketBooking = () => {
                           Retry
                         </button>
                         <a
-                          href={`https://saer.pk/api/tickets/?organization=${orgId}`}
+                          href={`http://127.0.0.1:8000/api/tickets/?organization=${orgId}`}
                           className="btn btn-sm btn-outline-primary"
                           target="_blank"
                           rel="noreferrer"

@@ -105,7 +105,7 @@ const Hotels = () => {
 
       // 1. Fetch user details
       const userResponse = await axios.get(
-        `https://saer.pk/api/users/${userId}/`,
+        `http://127.0.0.1:8000/api/users/${userId}/`,
         config
       );
 
@@ -131,7 +131,7 @@ const Hotels = () => {
 
       if (organizationIds.length === 1) {
         // Single organization - simple request
-        const response = await axios.get(`https://saer.pk/api/hotels/`, {
+        const response = await axios.get(`http://127.0.0.1:8000/api/hotels/`, {
           ...config,
           params: {
             organization: organizationIds[0],
@@ -141,7 +141,7 @@ const Hotels = () => {
       } else {
         // Multiple organizations - fetch in parallel
         const requests = organizationIds.map(orgId =>
-          axios.get(`https://saer.pk/api/hotels/`, {
+          axios.get(`http://127.0.0.1:8000/api/hotels/`, {
             ...config,
             params: { organization: orgId },
           })
